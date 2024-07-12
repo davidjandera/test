@@ -34,7 +34,7 @@
   map.on('load', function () {
     map.addSource('capitals', {
       type: 'geojson',
-      data: 'data.geojson', // Nahraďte cestu k vašemu GeoJSON souboru
+      data: 'path/to/data.geojson', // Nahraďte cestu k vašemu GeoJSON souboru
       cluster: true,
       clusterMaxZoom: 14,
       clusterRadius: 50
@@ -81,13 +81,14 @@
 
     map.addLayer({
       id: 'unclustered-point',
-      type: 'symbol',
+      type: 'circle',
       source: 'capitals',
       filter: ['!', ['has', 'point_count']],
-      layout: {
-        'icon-image': ['get', 'imageUrl'],
-        'icon-size': 0.5,
-        'icon-allow-overlap': true
+      paint: {
+        'circle-color': '#11b4da',
+        'circle-radius': 6,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#fff'
       }
     });
 
