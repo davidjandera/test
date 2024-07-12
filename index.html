@@ -31,10 +31,53 @@
     zoom: 5
   });
 
+  var markers = {};
+
+  function updateMarkers() {
+    var newMarkers = {};
+    var features = map.querySourceFeatures('capitals');
+
+    // Odstranění starých markerů
+    Object.keys(markers).forEach(function(id) {
+      if (!newMarkers[id]) {
+        markers[id].remove();
+        delete markers[id];
+      }
+    });
+
+    // Přidání nových markerů
+    features.forEach(function(feature) {
+      var coords = feature.geometry.coordinates;
+      var props = feature.properties;
+
+      if (!props.cluster) {
+        if (!markers[props.id]) {
+          var el = document.createElement('div');
+          el.className = 'marker';
+          el.style.backgroundImage = `url(${props.imageUrl})`;
+
+          var marker = new mapboxgl.Marker(el)
+            .setLngLat(coords)
+            .addTo(map);
+
+          el.addEventListener('click', function() {
+            new mapboxgl.Popup()
+              .setLngLat(coords)
+              .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
+              .addTo(map);
+          });
+
+          markers[props.id] = marker;
+        }
+        newMarkers[props.id] = markers[props.id];
+      }
+    });
+  }
+
   map.on('load', function () {
     map.addSource('capitals', {
       type: 'geojson',
-      data: 'data.geojson', // Nahraďte cestu k vašemu GeoJSON souboru
+      data: 'path/to/data.geojson', // Nahraďte cestu k vašemu GeoJSON souboru
       cluster: true,
       clusterMaxZoom: 14,
       clusterRadius: 50
@@ -79,17 +122,10 @@
       }
     });
 
-    map.addLayer({
-      id: 'unclustered-point',
-      type: 'symbol',
-      source: 'capitals',
-      filter: ['!', ['has', 'point_count']],
-      layout: {
-        'icon-image': ['get', 'icon'],
-        'icon-size': 0.5,
-        'icon-allow-overlap': true
-      }
-    });
+    updateMarkers();
+
+    map.on('moveend', updateMarkers);
+    map.on('zoomend', updateMarkers);
 
     map.on('click', 'clusters', function (e) {
       var features = map.queryRenderedFeatures(e.point, {
@@ -109,39 +145,11 @@
       );
     });
 
-    map.on('click', 'unclustered-point', function (e) {
-      var coordinates = e.features[0].geometry.coordinates.slice();
-      var { city, country, imageUrl } = e.features[0].properties;
-
-      new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(`<strong>${city}, ${country}</strong><br><img src="${imageUrl}" style="width:100px;height:auto;">`)
-        .addTo(map);
-    });
-
     map.on('mouseenter', 'clusters', function () {
       map.getCanvas().style.cursor = 'pointer';
     });
     map.on('mouseleave', 'clusters', function () {
       map.getCanvas().style.cursor = '';
-    });
-
-    // Add custom markers to the map
-    var geojson = {
-      type: 'FeatureCollection',
-      features: [ /* data from data.geojson */ ]
-    };
-
-    geojson.features.forEach(function(marker) {
-      // create a DOM element for the marker
-      var el = document.createElement('div');
-      el.className = 'marker';
-      el.style.backgroundImage = `url(${marker.properties.imageUrl})`;
-
-      // create the marker
-      new mapboxgl.Marker(el)
-        .setLngLat(marker.geometry.coordinates)
-        .addTo(map);
     });
   });
 </script>
