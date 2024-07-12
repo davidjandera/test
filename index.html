@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Zoom Map</title>
+  <title>European Capitals Map</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet" />
@@ -16,6 +16,17 @@
       border: 2px solid white;
       background-size: cover;
       background-position: center;
+    }
+    .cluster-count {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: rgba(0, 100, 255, 0.5);
+      color: white;
+      font-size: 12px;
     }
   </style>
 </head>
@@ -49,68 +60,155 @@
       const [city, country, lat, lng, imageUrl] = row;
       return {
         type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [parseFloat(lng), parseFloat(lat)]
-        },
         properties: {
           city: city,
           country: country,
-          imageUrl: imageUrl
+          imageUrl: imageUrl,
+          id: city
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [parseFloat(lng), parseFloat(lat)]
         }
       };
     });
 
-    const geojson = {
-      type: 'FeatureCollection',
-      features: features
-    };
-
-    // Add a data source containing GeoJSON data.
     map.addSource('capitals', {
       type: 'geojson',
-      data: geojson
-    });
-
-    // Add a layer showing the pins.
-    map.addLayer({
-      id: 'capitals-layer',
-      type: 'symbol',
-      source: 'capitals',
-      layout: {
-        'icon-image': ['concat', ['get', 'imageUrl']],
-        'icon-size': 0.5,
-        'icon-allow-overlap': true
-      }
-    });
-
-    // Add a layer showing the city names at zoom level 18 and higher.
-    map.addLayer({
-      id: 'city-labels',
-      type: 'symbol',
-      source: 'capitals',
-      layout: {
-        'text-field': ['get', 'city'],
-        'text-size': 12,
-        'text-offset': [0, 1.5],
-        'text-anchor': 'top',
-        'text-max-width': 8,
-        'visibility': 'none'
+      data: {
+        type: 'FeatureCollection',
+        features: features
       },
+      cluster: true,
+      clusterMaxZoom: 14, // Max zoom to cluster points on
+      clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
+    });
+
+    map.addLayer({
+      id: 'clusters',
+      type: 'circle',
+      source: 'capitals',
+      filter: ['has', 'point_count'],
       paint: {
-        'text-color': '#000000'
+        'circle-color': [
+          'step',
+          ['get', 'point_count'],
+          '#51bbd6',
+          100,
+          '#f1f075',
+          750,
+          '#f28cb1'
+        ],
+        'circle-radius': [
+          'step',
+          ['get', 'point_count'],
+          20,
+          100,
+          30,
+          750,
+          40
+        ]
       }
     });
 
-    // Show labels at zoom level 18 and higher
-    map.on('zoom', function() {
-      if (map.getZoom() >= 10) {
-        map.setLayoutProperty('city-labels', 'visibility', 'visible');
-      } else {
-        map.setLayoutProperty('city-labels', 'visibility', 'none');
+    map.addLayer({
+      id: 'cluster-count',
+      type: 'symbol',
+      source: 'capitals',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': '{point_count_abbreviated}',
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+        'text-size': 12
       }
     });
 
+    // Add the unclustered points layer with custom markers
+    const markers = {};
+    features.forEach(function(feature) {
+      var el = document.createElement('div');
+      el.className = 'marker';
+      el.style.backgroundImage = 'url(' + feature.properties.imageUrl + ')';
+
+      var marker = new mapboxgl.Marker(el)
+        .setLngLat(feature.geometry.coordinates)
+        .addTo(map)
+        .getElement().addEventListener('click', function() {
+          new mapboxgl.Popup()
+            .setLngLat(feature.geometry.coordinates)
+            .setHTML(`<strong>${feature.properties.city}, ${feature.properties.country}</strong>`)
+            .addTo(map);
+        });
+
+      markers[feature.properties.id] = marker;
+    });
+
+    // Function to update marker visibility based on cluster state
+    function updateMarkers() {
+      const zoom = map.getZoom();
+      const features = map.querySourceFeatures('capitals');
+      
+      const clusteredFeatures = features.filter(feature => feature.properties.cluster);
+      const pointFeatures = features.filter(feature => !feature.properties.cluster);
+      
+      // Hide all markers initially
+      Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
+      
+      // Show individual points
+      pointFeatures.forEach(feature => {
+        const id = feature.properties.id;
+        if (markers[id]) {
+          markers[id].getElement().style.display = 'block';
+        }
+      });
+      
+      // Process clusters (no need to show markers for clusters, as they are rendered by the cluster layer)
+    }
+
+    // Update markers on map events
+    map.on('data', (e) => {
+      if (e.sourceId === 'capitals' && e.isSourceLoaded) {
+        updateMarkers();
+      }
+    });
+    
+    map.on('moveend', updateMarkers);
+    map.on('zoomend', updateMarkers);
+
+    map.on('click', 'clusters', function (e) {
+      var features = map.queryRenderedFeatures(e.point, {
+        layers: ['clusters']
+      });
+      var clusterId = features[0].properties.cluster_id;
+      map.getSource('capitals').getClusterExpansionZoom(
+        clusterId,
+        function (err, zoom) {
+          if (err) return;
+
+          map.easeTo({
+            center: features[0].geometry.coordinates,
+            zoom: zoom
+          });
+        }
+      );
+    });
+
+    map.on('click', 'unclustered-point', function (e) {
+      var coordinates = e.features[0].geometry.coordinates.slice();
+      var { city, country, imageUrl } = e.features[0].properties;
+
+      new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(`<strong>${city}, ${country}</strong><br><img src="${imageUrl}" style="width:100px;height:auto;">`)
+        .addTo(map);
+    });
+
+    map.on('mouseenter', 'clusters', function () {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'clusters', function () {
+      map.getCanvas().style.cursor = '';
+    });
   });
 </script>
 </body>
