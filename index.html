@@ -17,21 +17,35 @@
       background-size: cover;
       background-position: center;
     }
-    #magicButton {
+    #controls {
       position: absolute;
       top: 10px;
       left: 10px;
       background: #fff;
       padding: 10px;
       border: none;
-      cursor: pointer;
       z-index: 1;
+      display: flex;
+      gap: 10px;
+    }
+    #cityName {
+      padding: 5px;
+      font-size: 14px;
+    }
+    #magicButton, #findButton {
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 <div id="map"></div>
-<button id="magicButton">Magic</button>
+<div id="controls">
+  <input type="text" id="cityName" placeholder="Zadejte město">
+  <button id="findButton">Najít</button>
+  <button id="magicButton">Magic</button>
+</div>
 <script>
   mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q'; // Nahraďte vaším Mapbox Access Tokenem
 
@@ -202,9 +216,24 @@
     setTimeout(updateMarkers, 100); // Okamžitá aktualizace markerů po přepnutí clusterování s malým zpožděním
   }
 
+  function findCity() {
+    const cityName = document.getElementById('cityName').value.toLowerCase();
+    const feature = sheetData.find(item => item.city.toLowerCase() === cityName);
+    if (feature) {
+      map.easeTo({
+        center: feature.coordinates,
+        zoom: 12
+      });
+    } else {
+      alert('Město nenalezeno!');
+    }
+  }
+
   document.getElementById('magicButton').addEventListener('click', function() {
     toggleClustering();
   });
+
+  document.getElementById('findButton').addEventListener('click', findCity);
 
   map.on('load', async function () {
     const rows = await fetchGoogleSheetsData();
