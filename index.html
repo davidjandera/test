@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>European Capitals Map</title>
+  <title>Zoom Map</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet" />
@@ -104,7 +104,7 @@
 
     // Show labels at zoom level 18 and higher
     map.on('zoom', function() {
-      if (map.getZoom() >= 18) {
+      if (map.getZoom() >= 10) {
         map.setLayoutProperty('city-labels', 'visibility', 'visible');
       } else {
         map.setLayoutProperty('city-labels', 'visibility', 'none');
