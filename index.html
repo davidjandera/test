@@ -47,8 +47,8 @@
   var clusteringEnabled = true;
 
   async function fetchGoogleSheetsData() {
-    const apiKey = 'YOUR_GOOGLE_SHEETS_API_KEY'; // Nahraďte vaším Google Sheets API klíčem
-    const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Nahraďte ID vaší tabulky Google Sheets
+    const apiKey = 'AIzaSyCpgbO0B6V0eEiVfyt6xewv0cHjyYsj1-o'; // Nahraďte vaším Google Sheets API klíčem
+    const spreadsheetId = '1YtHqKg22xPXglCKOYOzCYTK4Om1_WhjaogZTCHnfzf8'; // Nahraďte ID vaší tabulky Google Sheets
     const range = 'mapa!A:E'; // Přizpůsobte název listu a rozsah podle potřeby
 
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`);
@@ -143,7 +143,7 @@
       data: geojsonData,
       cluster: clusteringEnabled,
       clusterMaxZoom: 14,
-      clusterRadius: 50
+      clusterRadius: 25
     });
 
     if (clusteringEnabled) {
