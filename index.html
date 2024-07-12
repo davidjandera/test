@@ -17,6 +17,17 @@
       background-size: cover;
       background-position: center;
     }
+    .cluster-count {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: rgba(0, 100, 255, 0.5);
+      color: white;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -53,7 +64,7 @@
           city: city,
           country: country,
           imageUrl: imageUrl,
-          id: city,
+          id: city
         },
         geometry: {
           type: 'Point',
