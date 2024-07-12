@@ -128,7 +128,7 @@
       data: geojsonData,
       cluster: true,
       clusterMaxZoom: 14,
-      clusterRadius: 25
+      clusterRadius: 50
     });
 
     map.addLayer({
@@ -190,7 +190,7 @@
             zoom: zoom
           });
 
-          map.once('moveend', updateMarkers); // Přidáme `updateMarkers` po rozbalení clusteru
+          setTimeout(updateMarkers, 1000); // Zpoždění pro zajištění, že se piny aktualizují po přiblížení
         }
       );
     });
