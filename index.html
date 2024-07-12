@@ -142,7 +142,7 @@
       data: geojsonData,
       cluster: clusteringEnabled,
       clusterMaxZoom: 14,
-      clusterRadius: 25
+      clusterRadius: 50
     });
 
     if (clusteringEnabled) {
@@ -184,6 +184,18 @@
           'text-size': 12
         }
       });
+    } else {
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'symbol',
+        source: 'capitals',
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          'icon-image': ['get', 'icon'],
+          'icon-size': 0.5,
+          'icon-allow-overlap': true
+        }
+      });
     }
 
     updateMarkers();
@@ -191,7 +203,7 @@
 
   document.getElementById('magicButton').addEventListener('click', function() {
     toggleClustering();
-    updateMarkers(); // Okamžitá aktualizace markerů po přepnutí clusterování
+    setTimeout(updateMarkers, 100); // Okamžitá aktualizace markerů po přepnutí clusterování s malým zpožděním
   });
 
   map.on('load', async function () {
@@ -205,7 +217,7 @@
       data: geojsonData,
       cluster: clusteringEnabled,
       clusterMaxZoom: 14,
-      clusterRadius: 50
+      clusterRadius: 25
     });
 
     map.addLayer({
