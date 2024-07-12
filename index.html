@@ -189,6 +189,8 @@
             center: features[0].geometry.coordinates,
             zoom: zoom
           });
+
+          map.once('moveend', updateMarkers); // Přidáme `updateMarkers` po rozbalení clusteru
         }
       );
     });
