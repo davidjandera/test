@@ -17,6 +17,17 @@
       background-size: cover;
       background-position: center;
     }
+    .cluster-count {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: rgba(0, 100, 255, 0.5);
+      color: white;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -53,7 +64,8 @@
           city: city,
           country: country,
           imageUrl: imageUrl,
-          id: city
+          id: city,
+          visible: false // Inicializace viditelnosti
         },
         geometry: {
           type: 'Point',
@@ -113,7 +125,6 @@
     });
 
     const markers = {};
-    const addedMarkers = new Set();
 
     features.forEach(function(feature) {
       var el = document.createElement('div');
@@ -129,26 +140,32 @@
             .addTo(map);
         });
 
-      markers[feature.properties.id] = marker;
+      markers[feature.properties.id] = {
+        marker: marker,
+        visible: false // Inicializace viditelnosti markeru
+      };
     });
 
     function updateMarkers() {
       const features = map.querySourceFeatures('capitals');
 
-      // Odstranit všechny markery
-      addedMarkers.forEach(id => {
-        if (markers[id]) {
-          markers[id].remove();
-        }
-      });
-      addedMarkers.clear();
-
-      // Přidat markery, které nejsou součástí clusteru
+      // Nastavit viditelnost markerů
       features.forEach(feature => {
         const id = feature.properties.id;
-        if (!feature.properties.cluster && markers[id]) {
-          markers[id].addTo(map);
-          addedMarkers.add(id);
+        if (markers[id]) {
+          if (feature.properties.point_count) {
+            // Marker je součástí clusteru
+            if (markers[id].visible) {
+              markers[id].marker.remove();
+              markers[id].visible = false;
+            }
+          } else {
+            // Marker není součástí clusteru
+            if (!markers[id].visible) {
+              markers[id].marker.addTo(map);
+              markers[id].visible = true;
+            }
+          }
         }
       });
     }
