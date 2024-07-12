@@ -124,7 +124,6 @@
       }
     });
 
-    // Add the unclustered points layer with custom markers
     const markers = {};
     features.forEach(function(feature) {
       var el = document.createElement('div');
@@ -146,23 +145,32 @@
 
     // Function to update marker visibility based on cluster state
     function updateMarkers() {
-      const zoom = map.getZoom();
       const features = map.querySourceFeatures('capitals');
-      
-      // Hide all markers initially
+
+      // Nastavit všechny markery jako neviditelné
       Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
-      
-      // Show individual points
+
+      // Nastavit parametry viditelnosti pro jednotlivé markery
       features.forEach(feature => {
-        const id = feature.properties.id;
-        if (markers[id]) {
-          if (feature.properties.point_count) {
-            // Hide markers that are part of a cluster
-            feature.properties.visible = false;
-          } else {
-            // Show markers that are not part of a cluster
-            feature.properties.visible = true;
+        if (feature.properties.point_count) {
+          // Pokud je to cluster, nastav viditelnost všech markerů v clusteru na false
+          const clusterId = feature.properties.cluster_id;
+          map.getSource('capitals').getClusterLeaves(clusterId, Infinity, 0, (err, leaves) => {
+            if (err) return;
+            leaves.forEach(leaf => {
+              const id = leaf.properties.id;
+              if (markers[id]) {
+                markers[id].getElement().style.display = 'none';
+                markers[id].visible = false; // aktualizace parametru visible
+              }
+            });
+          });
+        } else {
+          // Pokud to není cluster, nastav marker jako viditelný
+          const id = feature.properties.id;
+          if (markers[id]) {
             markers[id].getElement().style.display = 'block';
+            markers[id].visible = true; // aktualizace parametru visible
           }
         }
       });
