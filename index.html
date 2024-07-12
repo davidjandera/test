@@ -52,7 +52,8 @@
           city: city,
           country: country,
           imageUrl: imageUrl,
-          id: city
+          id: city,
+          visible: true // Inicializace parametru viditelnosti
         },
         geometry: {
           type: 'Point',
@@ -129,22 +130,34 @@
       markers[feature.properties.id] = marker;
     });
 
-    function addMarkers() {
-      Object.values(markers).forEach(marker => marker.addTo(map));
-    }
-
-    function removeMarkers() {
-      Object.values(markers).forEach(marker => marker.remove());
-    }
-
     function updateMarkers() {
-      removeMarkers();
+      const features = map.querySourceFeatures('capitals');
 
-      const features = map.querySourceFeatures('capitals', { filter: ['!', ['has', 'point_count']] });
+      // Nastavit všechny markery jako neviditelné
+      Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
+
+      // Nastavit parametry viditelnosti pro jednotlivé markery
       features.forEach(feature => {
-        const id = feature.properties.id;
-        if (markers[id]) {
-          markers[id].addTo(map);
+        if (feature.properties.point_count) {
+          // Pokud je to cluster, nastav viditelnost všech markerů v clusteru na false
+          const clusterId = feature.properties.cluster_id;
+          map.getSource('capitals').getClusterLeaves(clusterId, Infinity, 0, (err, leaves) => {
+            if (err) return;
+            leaves.forEach(leaf => {
+              const id = leaf.properties.id;
+              if (markers[id]) {
+                markers[id].getElement().style.display = 'none';
+                leaf.properties.visible = false;
+              }
+            });
+          });
+        } else {
+          // Pokud to není cluster, nastav marker jako viditelný
+          const id = feature.properties.id;
+          if (markers[id]) {
+            markers[id].getElement().style.display = 'block';
+            feature.properties.visible = true;
+          }
         }
       });
     }
