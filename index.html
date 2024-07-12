@@ -17,17 +17,6 @@
       background-size: cover;
       background-position: center;
     }
-    .cluster-count {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: rgba(0, 100, 255, 0.5);
-      color: white;
-      font-size: 12px;
-    }
   </style>
 </head>
 <body>
@@ -65,7 +54,6 @@
           country: country,
           imageUrl: imageUrl,
           id: city,
-          visible: true // Přidáme parametr visible
         },
         geometry: {
           type: 'Point',
@@ -125,6 +113,8 @@
     });
 
     const markers = {};
+    const addedMarkers = new Set();
+
     features.forEach(function(feature) {
       var el = document.createElement('div');
       el.className = 'marker';
@@ -132,7 +122,6 @@
 
       var marker = new mapboxgl.Marker(el)
         .setLngLat(feature.geometry.coordinates)
-        .addTo(map)
         .getElement().addEventListener('click', function() {
           new mapboxgl.Popup()
             .setLngLat(feature.geometry.coordinates)
@@ -143,49 +132,39 @@
       markers[feature.properties.id] = marker;
     });
 
-    // Function to update marker visibility based on cluster state
     function updateMarkers() {
       const features = map.querySourceFeatures('capitals');
 
-      // Nastavit všechny markery jako neviditelné
-      Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
+      // Odstranit všechny markery
+      addedMarkers.forEach(id => {
+        if (markers[id]) {
+          markers[id].remove();
+        }
+      });
+      addedMarkers.clear();
 
-      // Nastavit parametry viditelnosti pro jednotlivé markery
+      // Přidat markery, které nejsou součástí clusteru
       features.forEach(feature => {
-        if (feature.properties.point_count) {
-          // Pokud je to cluster, nastav viditelnost všech markerů v clusteru na false
-          const clusterId = feature.properties.cluster_id;
-          map.getSource('capitals').getClusterLeaves(clusterId, Infinity, 0, (err, leaves) => {
-            if (err) return;
-            leaves.forEach(leaf => {
-              const id = leaf.properties.id;
-              if (markers[id]) {
-                markers[id].getElement().style.display = 'none';
-                markers[id].visible = false; // aktualizace parametru visible
-              }
-            });
-          });
-        } else {
-          // Pokud to není cluster, nastav marker jako viditelný
-          const id = feature.properties.id;
-          if (markers[id]) {
-            markers[id].getElement().style.display = 'block';
-            markers[id].visible = true; // aktualizace parametru visible
-          }
+        const id = feature.properties.id;
+        if (!feature.properties.cluster && markers[id]) {
+          markers[id].addTo(map);
+          addedMarkers.add(id);
         }
       });
     }
 
-    // Update markers on map events
+    // Aktualizace markerů při změně mapových dat
     map.on('data', (e) => {
       if (e.sourceId === 'capitals' && e.isSourceLoaded) {
         updateMarkers();
       }
     });
-    
+
+    // Aktualizace markerů při ukončení pohybu nebo změně zoomu
     map.on('moveend', updateMarkers);
     map.on('zoomend', updateMarkers);
 
+    // Kliknutí na cluster rozšíří zobrazení
     map.on('click', 'clusters', function (e) {
       var features = map.queryRenderedFeatures(e.point, {
         layers: ['clusters']
@@ -202,16 +181,6 @@
           });
         }
       );
-    });
-
-    map.on('click', 'unclustered-point', function (e) {
-      var coordinates = e.features[0].geometry.coordinates.slice();
-      var { city, country, imageUrl } = e.features[0].properties;
-
-      new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(`<strong>${city}, ${country}</strong><br><img src="${imageUrl}" style="width:100px;height:auto;">`)
-        .addTo(map);
     });
 
     map.on('mouseenter', 'clusters', function () {
