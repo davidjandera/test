@@ -10,8 +10,8 @@
     body { margin:0; padding:0; }
     #map { position:absolute; top:0; bottom:0; width:100%; }
     .marker {
-      width: 100px;  /* Zmenšeno z 50px na 30px */
-      height: 100px; /* Zmenšeno z 50px na 30px */
+      width: 30px;  /* Zmenšeno z 50px na 30px */
+      height: 30px; /* Zmenšeno z 50px na 30px */
       border-radius: 50%;
       border: 2px solid white;
       background-size: cover;
@@ -56,75 +56,30 @@
         id: city
       };
     });
-    updateMarkers();
+    addMapLayers();
   }
 
-  function updateMarkers() {
-    // Smazat všechny existující markery
-    Object.keys(markers).forEach(id => {
-      markers[id].remove();
-      delete markers[id];
-    });
-
-    const features = map.querySourceFeatures('capitals');
-
-    const clusterIds = new Set();
-    features.forEach(feature => {
-      if (feature.properties.cluster) {
-        const clusterId = feature.properties.cluster_id;
-        map.getSource('capitals').getClusterLeaves(clusterId, Infinity, 0, (err, leaves) => {
-          if (err) return;
-          leaves.forEach(leaf => {
-            clusterIds.add(leaf.properties.id);
-          });
-        });
-      }
-    });
-
-    // Přidat markery, které nejsou součástí clusteru
-    sheetData.forEach(data => {
-      if (!clusterIds.has(data.id)) {
-        var el = document.createElement('div');
-        el.className = 'marker';
-        el.style.backgroundImage = 'url(' + data.imageUrl + ')';
-        
-        var marker = new mapboxgl.Marker(el)
-          .setLngLat(data.coordinates)
-          .addTo(map);
-        
-        markers[data.id] = marker;
-
-        el.addEventListener('click', function() {
-          new mapboxgl.Popup()
-            .setLngLat(data.coordinates)
-            .setHTML(`<strong>${data.city}, ${data.country}</strong>`)
-            .addTo(map);
-        });
-      }
-    });
-  }
-
-  map.on('load', async function () {
-    await loadMarkers();
+  function addMapLayers() {
+    const geojsonData = {
+      type: 'FeatureCollection',
+      features: sheetData.map(data => ({
+        type: 'Feature',
+        properties: {
+          city: data.city,
+          country: data.country,
+          imageUrl: data.imageUrl,
+          id: data.id
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: data.coordinates
+        }
+      }))
+    };
 
     map.addSource('capitals', {
       type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: sheetData.map(data => ({
-          type: 'Feature',
-          properties: {
-            city: data.city,
-            country: data.country,
-            imageUrl: data.imageUrl,
-            id: data.id
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: data.coordinates
-          }
-        }))
-      },
+      data: geojsonData,
       cluster: true,
       clusterMaxZoom: 14,
       clusterRadius: 50
@@ -169,9 +124,19 @@
       }
     });
 
-    map.on('moveend', updateMarkers);
-    map.on('zoomend', updateMarkers);
+    map.addLayer({
+      id: 'unclustered-point',
+      type: 'symbol',
+      source: 'capitals',
+      filter: ['!', ['has', 'point_count']],
+      layout: {
+        'icon-image': ['get', 'imageUrl'],
+        'icon-size': 0.5,
+        'icon-allow-overlap': true
+      }
+    });
 
+    // Listen for click events on the clusters
     map.on('click', 'clusters', function (e) {
       var features = map.queryRenderedFeatures(e.point, {
         layers: ['clusters']
@@ -190,11 +155,63 @@
       );
     });
 
+    // Show a popup when clicking on a point
+    map.on('click', 'unclustered-point', function (e) {
+      var coordinates = e.features[0].geometry.coordinates.slice();
+      var { city, country, imageUrl } = e.features[0].properties;
+
+      new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(`<strong>${city}, ${country}</strong><br><img src="${imageUrl}" style="width:100px;height:auto;">`)
+        .addTo(map);
+    });
+
+    // Change the cursor to a pointer when over a cluster
     map.on('mouseenter', 'clusters', function () {
       map.getCanvas().style.cursor = 'pointer';
     });
     map.on('mouseleave', 'clusters', function () {
       map.getCanvas().style.cursor = '';
+    });
+  }
+
+  map.on('load', loadMarkers);
+
+  map.on('moveend', function() {
+    map.getSource('capitals').setData({
+      type: 'FeatureCollection',
+      features: sheetData.map(data => ({
+        type: 'Feature',
+        properties: {
+          city: data.city,
+          country: data.country,
+          imageUrl: data.imageUrl,
+          id: data.id
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: data.coordinates
+        }
+      }))
+    });
+  });
+
+  map.on('zoomend', function() {
+    map.getSource('capitals').setData({
+      type: 'FeatureCollection',
+      features: sheetData.map(data => ({
+        type: 'Feature',
+        properties: {
+          city: data.city,
+          country: data.country,
+          imageUrl: data.imageUrl,
+          id: data.id
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: data.coordinates
+        }
+      }))
     });
   });
 </script>
