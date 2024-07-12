@@ -119,7 +119,6 @@
 
       var marker = new mapboxgl.Marker(el)
         .setLngLat(feature.geometry.coordinates)
-        .addTo(map)
         .getElement().addEventListener('click', function() {
           new mapboxgl.Popup()
             .setLngLat(feature.geometry.coordinates)
@@ -130,30 +129,23 @@
       markers[feature.properties.id] = marker;
     });
 
+    function addMarkers() {
+      Object.values(markers).forEach(marker => marker.addTo(map));
+    }
+
+    function removeMarkers() {
+      Object.values(markers).forEach(marker => marker.remove());
+    }
+
     function updateMarkers() {
+      removeMarkers();
+
       const features = map.querySourceFeatures('capitals', { filter: ['!', ['has', 'point_count']] });
-      const clusters = map.querySourceFeatures('capitals', { filter: ['has', 'point_count'] });
-
-      Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
-
       features.forEach(feature => {
         const id = feature.properties.id;
         if (markers[id]) {
-          markers[id].getElement().style.display = 'block';
+          markers[id].addTo(map);
         }
-      });
-
-      clusters.forEach(cluster => {
-        const clusterId = cluster.properties.cluster_id;
-        map.getSource('capitals').getClusterLeaves(clusterId, Infinity, 0, (err, leaves) => {
-          if (err) return;
-          leaves.forEach(leaf => {
-            const id = leaf.properties.id;
-            if (markers[id]) {
-              markers[id].getElement().style.display = 'none';
-            }
-          });
-        });
       });
     }
 
