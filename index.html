@@ -45,72 +45,28 @@
   map.on('load', async function () {
     const rows = await fetchGoogleSheetsData();
 
-    const features = rows.slice(1).map(function(row) { // Skip header row
+    rows.slice(1).forEach(function(row) { // Skip header row
       const [city, country, lat, lng, imageUrl] = row;
-      return {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [parseFloat(lng), parseFloat(lat)]
-        },
-        properties: {
-          city: city,
-          country: country,
-          imageUrl: imageUrl
-        }
-      };
+      const coordinates = [parseFloat(lng), parseFloat(lat)];
+
+      // Vytvořte DOM element pro každý marker
+      var el = document.createElement('div');
+      el.className = 'marker';
+      el.style.backgroundImage = 'url(' + imageUrl + ')';
+
+      // Vytvořte marker a přidejte do mapy
+      new mapboxgl.Marker(el)
+        .setLngLat(coordinates)
+        .addTo(map);
+
+      // Přidání vyskakovacího okna s popisem
+      el.addEventListener('click', function() {
+        new mapboxgl.Popup()
+          .setLngLat(coordinates)
+          .setHTML(`<strong>${city}, ${country}</strong>`)
+          .addTo(map);
+      });
     });
-
-    const geojson = {
-      type: 'FeatureCollection',
-      features: features
-    };
-
-    // Add a data source containing GeoJSON data.
-    map.addSource('capitals', {
-      type: 'geojson',
-      data: geojson
-    });
-
-    // Add a layer showing the pins.
-    map.addLayer({
-      id: 'capitals-layer',
-      type: 'symbol',
-      source: 'capitals',
-      layout: {
-        'icon-image': ['concat', ['get', 'imageUrl']],
-        'icon-size': 0.5,
-        'icon-allow-overlap': true
-      }
-    });
-
-    // Add a layer showing the city names at zoom level 18 and higher.
-    map.addLayer({
-      id: 'city-labels',
-      type: 'symbol',
-      source: 'capitals',
-      layout: {
-        'text-field': ['get', 'city'],
-        'text-size': 12,
-        'text-offset': [0, 1.5],
-        'text-anchor': 'top',
-        'text-max-width': 8,
-        'visibility': 'none'
-      },
-      paint: {
-        'text-color': '#000000'
-      }
-    });
-
-    // Show labels at zoom level 18 and higher
-    map.on('zoom', function() {
-      if (map.getZoom() >= 18) {
-        map.setLayoutProperty('city-labels', 'visibility', 'visible');
-      } else {
-        map.setLayoutProperty('city-labels', 'visibility', 'none');
-      }
-    });
-
   });
 </script>
 </body>
