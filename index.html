@@ -133,7 +133,6 @@
     clusteringEnabled = !clusteringEnabled;
     map.removeLayer('clusters');
     map.removeLayer('cluster-count');
-    map.removeLayer('unclustered-point');
     map.removeSource('capitals');
 
     const geojsonData = createGeoJSON(sheetData);
@@ -185,24 +184,15 @@
           'text-size': 12
         }
       });
-    } else {
-      map.addLayer({
-        id: 'unclustered-point',
-        type: 'symbol',
-        source: 'capitals',
-        filter: ['!', ['has', 'point_count']],
-        layout: {
-          'icon-image': ['get', 'icon'],
-          'icon-size': 0.5,
-          'icon-allow-overlap': true
-        }
-      });
     }
 
     updateMarkers();
   }
 
-  document.getElementById('magicButton').addEventListener('click', toggleClustering);
+  document.getElementById('magicButton').addEventListener('click', function() {
+    toggleClustering();
+    updateMarkers(); // Okamžitá aktualizace markerů po přepnutí clusterování
+  });
 
   map.on('load', async function () {
     const rows = await fetchGoogleSheetsData();
