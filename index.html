@@ -10,8 +10,8 @@
     body { margin:0; padding:0; }
     #map { position:absolute; top:0; bottom:0; width:100%; }
     .marker {
-      width: 30px;
-      height: 30px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       border: 2px solid white;
       background-size: cover;
@@ -34,7 +34,7 @@
   map.on('load', function () {
     map.addSource('capitals', {
       type: 'geojson',
-      data: 'data.geojson', // Nahraďte cestu k vašemu GeoJSON souboru
+      data: 'path/to/data.geojson', // Nahraďte cestu k vašemu GeoJSON souboru
       cluster: true,
       clusterMaxZoom: 14,
       clusterRadius: 50
@@ -81,14 +81,13 @@
 
     map.addLayer({
       id: 'unclustered-point',
-      type: 'circle',
+      type: 'symbol',
       source: 'capitals',
       filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-color': '#11b4da',
-        'circle-radius': 6,
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#fff'
+      layout: {
+        'icon-image': ['get', 'icon'],
+        'icon-size': 0.5,
+        'icon-allow-overlap': true
       }
     });
 
@@ -125,6 +124,24 @@
     });
     map.on('mouseleave', 'clusters', function () {
       map.getCanvas().style.cursor = '';
+    });
+
+    // Add custom markers to the map
+    var geojson = {
+      type: 'FeatureCollection',
+      features: [ /* data from data.geojson */ ]
+    };
+
+    geojson.features.forEach(function(marker) {
+      // create a DOM element for the marker
+      var el = document.createElement('div');
+      el.className = 'marker';
+      el.style.backgroundImage = `url(${marker.properties.imageUrl})`;
+
+      // create the marker
+      new mapboxgl.Marker(el)
+        .setLngLat(marker.geometry.coordinates)
+        .addTo(map);
     });
   });
 </script>
