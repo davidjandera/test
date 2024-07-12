@@ -66,10 +66,9 @@
       delete markers[id];
     });
 
-    // Přidat markery, které nejsou součástí clusteru
     const features = map.querySourceFeatures('capitals');
-    const clusterIds = new Set();
 
+    const clusterIds = new Set();
     features.forEach(feature => {
       if (feature.properties.cluster) {
         const clusterId = feature.properties.cluster_id;
@@ -82,6 +81,7 @@
       }
     });
 
+    // Přidat markery, které nejsou součástí clusteru
     sheetData.forEach(data => {
       if (!clusterIds.has(data.id)) {
         var el = document.createElement('div');
