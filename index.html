@@ -17,17 +17,6 @@
       background-size: cover;
       background-position: center;
     }
-    .cluster-count {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: rgba(0, 100, 255, 0.5);
-      color: white;
-      font-size: 12px;
-    }
   </style>
 </head>
 <body>
@@ -122,6 +111,17 @@
       }
     });
 
+    map.addLayer({
+      id: 'unclustered-point',
+      type: 'symbol',
+      source: 'capitals',
+      filter: ['!', ['has', 'point_count']],
+      layout: {
+        'icon-image': 'marker-15',
+        'icon-size': 1
+      }
+    });
+
     const markers = {};
     features.forEach(function(feature) {
       var el = document.createElement('div');
@@ -142,14 +142,11 @@
     });
 
     function updateMarkers() {
-      const features = map.querySourceFeatures('capitals');
-
-      const clusteredFeatures = features.filter(feature => feature.properties.cluster_id);
-      const pointFeatures = features.filter(feature => !feature.properties.cluster_id);
+      const features = map.querySourceFeatures('capitals', { filter: ['!', ['has', 'point_count']] });
 
       Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
 
-      pointFeatures.forEach(feature => {
+      features.forEach(feature => {
         const id = feature.properties.id;
         if (markers[id]) {
           markers[id].getElement().style.display = 'block';
