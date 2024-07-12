@@ -17,10 +17,21 @@
       background-size: cover;
       background-position: center;
     }
+    #magicButton {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
 <div id="map"></div>
+<button id="magicButton">Magic</button>
 <script>
   mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q'; // Nahraďte vaším Mapbox Access Tokenem
 
@@ -33,10 +44,11 @@
 
   var markers = {};
   var sheetData = [];
+  var clusteringEnabled = true;
 
   async function fetchGoogleSheetsData() {
-    const apiKey = 'AIzaSyCpgbO0B6V0eEiVfyt6xewv0cHjyYsj1-o'; // Nahraďte vaším Google Sheets API klíčem
-    const spreadsheetId = '1YtHqKg22xPXglCKOYOzCYTK4Om1_WhjaogZTCHnfzf8'; // Nahraďte ID vaší tabulky Google Sheets
+    const apiKey = 'YOUR_GOOGLE_SHEETS_API_KEY'; // Nahraďte vaším Google Sheets API klíčem
+    const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Nahraďte ID vaší tabulky Google Sheets
     const range = 'mapa!A:E'; // Přizpůsobte název listu a rozsah podle potřeby
 
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`);
@@ -117,6 +129,81 @@
     });
   }
 
+  function toggleClustering() {
+    clusteringEnabled = !clusteringEnabled;
+    map.removeLayer('clusters');
+    map.removeLayer('cluster-count');
+    map.removeLayer('unclustered-point');
+    map.removeSource('capitals');
+
+    const geojsonData = createGeoJSON(sheetData);
+
+    map.addSource('capitals', {
+      type: 'geojson',
+      data: geojsonData,
+      cluster: clusteringEnabled,
+      clusterMaxZoom: 14,
+      clusterRadius: 50
+    });
+
+    if (clusteringEnabled) {
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'capitals',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': [
+            'step',
+            ['get', 'point_count'],
+            '#51bbd6',
+            100,
+            '#f1f075',
+            750,
+            '#f28cb1'
+          ],
+          'circle-radius': [
+            'step',
+            ['get', 'point_count'],
+            20,
+            100,
+            30,
+            750,
+            40
+          ]
+        }
+      });
+
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'capitals',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-size': 12
+        }
+      });
+    } else {
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'symbol',
+        source: 'capitals',
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          'icon-image': ['get', 'icon'],
+          'icon-size': 0.5,
+          'icon-allow-overlap': true
+        }
+      });
+    }
+
+    updateMarkers();
+  }
+
+  document.getElementById('magicButton').addEventListener('click', toggleClustering);
+
   map.on('load', async function () {
     const rows = await fetchGoogleSheetsData();
     sheetData = processSheetData(rows);
@@ -126,9 +213,9 @@
     map.addSource('capitals', {
       type: 'geojson',
       data: geojsonData,
-      cluster: true,
+      cluster: clusteringEnabled,
       clusterMaxZoom: 14,
-      clusterRadius: 25
+      clusterRadius: 50
     });
 
     map.addLayer({
