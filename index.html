@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Mapa evropských hlavních měst</title>
+  <title>European Capitals Map</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet" />
@@ -17,24 +17,36 @@
       background-size: cover;
       background-position: center;
     }
+    .cluster-count {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: rgba(0, 100, 255, 0.5);
+      color: white;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
 <div id="map"></div>
 <script>
-  mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q';
+  mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q'; // Nahraďte vaším Mapbox Access Tokenem
 
   var map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11',
-    center: [12.7376057, 42.8747214],
+    center: [12.7376057, 42.8747214], // střed Trevi
     zoom: 5
   });
 
+  // Function to fetch Google Sheets data
   async function fetchGoogleSheetsData() {
-    const apiKey = 'AIzaSyCpgbO0B6V0eEiVfyt6xewv0cHjyYsj1-o';
-    const spreadsheetId = '1YtHqKg22xPXglCKOYOzCYTK4Om1_WhjaogZTCHnfzf8';
-    const range = 'mapa!A:E';
+    const apiKey = 'AIzaSyCpgbO0B6V0eEiVfyt6xewv0cHjyYsj1-o'; // Nahraďte vaším Google Sheets API klíčem
+    const spreadsheetId = '1YtHqKg22xPXglCKOYOzCYTK4Om1_WhjaogZTCHnfzf8'; // Nahraďte ID vaší tabulky Google Sheets
+    const range = 'mapa!A:E'; // Přizpůsobte název listu a rozsah podle potřeby
 
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`);
     const data = await response.json();
@@ -44,7 +56,7 @@
   map.on('load', async function () {
     const rows = await fetchGoogleSheetsData();
 
-    const features = rows.slice(1).map(function(row) {
+    const features = rows.slice(1).map(function(row) { // Skip header row
       const [city, country, lat, lng, imageUrl] = row;
       return {
         type: 'Feature',
@@ -53,7 +65,7 @@
           country: country,
           imageUrl: imageUrl,
           id: city,
-          visible: true // Inicializace parametru viditelnosti
+          visible: true // Přidáme parametr visible
         },
         geometry: {
           type: 'Point',
@@ -69,8 +81,8 @@
         features: features
       },
       cluster: true,
-      clusterMaxZoom: 14,
-      clusterRadius: 50
+      clusterMaxZoom: 14, // Max zoom to cluster points on
+      clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
     });
 
     map.addLayer({
@@ -112,6 +124,7 @@
       }
     });
 
+    // Add the unclustered points layer with custom markers
     const markers = {};
     features.forEach(function(feature) {
       var el = document.createElement('div');
@@ -120,6 +133,7 @@
 
       var marker = new mapboxgl.Marker(el)
         .setLngLat(feature.geometry.coordinates)
+        .addTo(map)
         .getElement().addEventListener('click', function() {
           new mapboxgl.Popup()
             .setLngLat(feature.geometry.coordinates)
@@ -130,44 +144,37 @@
       markers[feature.properties.id] = marker;
     });
 
+    // Function to update marker visibility based on cluster state
     function updateMarkers() {
+      const zoom = map.getZoom();
       const features = map.querySourceFeatures('capitals');
-
-      // Nastavit všechny markery jako neviditelné
+      
+      // Hide all markers initially
       Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
-
-      // Nastavit parametry viditelnosti pro jednotlivé markery
+      
+      // Show individual points
       features.forEach(feature => {
-        if (feature.properties.point_count) {
-          // Pokud je to cluster, nastav viditelnost všech markerů v clusteru na false
-          const clusterId = feature.properties.cluster_id;
-          map.getSource('capitals').getClusterLeaves(clusterId, Infinity, 0, (err, leaves) => {
-            if (err) return;
-            leaves.forEach(leaf => {
-              const id = leaf.properties.id;
-              if (markers[id]) {
-                markers[id].getElement().style.display = 'none';
-                leaf.properties.visible = false;
-              }
-            });
-          });
-        } else {
-          // Pokud to není cluster, nastav marker jako viditelný
-          const id = feature.properties.id;
-          if (markers[id]) {
-            markers[id].getElement().style.display = 'block';
+        const id = feature.properties.id;
+        if (markers[id]) {
+          if (feature.properties.point_count) {
+            // Hide markers that are part of a cluster
+            feature.properties.visible = false;
+          } else {
+            // Show markers that are not part of a cluster
             feature.properties.visible = true;
+            markers[id].getElement().style.display = 'block';
           }
         }
       });
     }
 
+    // Update markers on map events
     map.on('data', (e) => {
       if (e.sourceId === 'capitals' && e.isSourceLoaded) {
         updateMarkers();
       }
     });
-
+    
     map.on('moveend', updateMarkers);
     map.on('zoomend', updateMarkers);
 
@@ -187,6 +194,16 @@
           });
         }
       );
+    });
+
+    map.on('click', 'unclustered-point', function (e) {
+      var coordinates = e.features[0].geometry.coordinates.slice();
+      var { city, country, imageUrl } = e.features[0].properties;
+
+      new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(`<strong>${city}, ${country}</strong><br><img src="${imageUrl}" style="width:100px;height:auto;">`)
+        .addTo(map);
     });
 
     map.on('mouseenter', 'clusters', function () {
