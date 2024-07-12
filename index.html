@@ -10,8 +10,8 @@
     body { margin:0; padding:0; }
     #map { position:absolute; top:0; bottom:0; width:100%; }
     .marker {
-      width: 30px;  /* Zmenšeno z 50px na 30px */
-      height: 30px; /* Zmenšeno z 50px na 30px */
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       border: 2px solid white;
       background-size: cover;
@@ -31,55 +31,10 @@
     zoom: 5
   });
 
-  async function fetchGoogleSheetsData() {
-    const apiKey = 'AIzaSyCpgbO0B6V0eEiVfyt6xewv0cHjyYsj1-o'; // Nahraďte vaším Google Sheets API klíčem
-    const spreadsheetId = '1YtHqKg22xPXglCKOYOzCYTK4Om1_WhjaogZTCHnfzf8'; // Nahraďte ID vaší tabulky Google Sheets
-    const range = 'mapa!A:E'; // Přizpůsobte název listu a rozsah podle potřeby
-
-    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`);
-    const data = await response.json();
-    return data.values;
-  }
-
-  const markers = {};
-  let sheetData = [];
-
-  async function loadMarkers() {
-    const rows = await fetchGoogleSheetsData();
-    sheetData = rows.slice(1).map(row => {
-      const [city, country, lat, lng, imageUrl] = row;
-      return {
-        city: city,
-        country: country,
-        coordinates: [parseFloat(lng), parseFloat(lat)],
-        imageUrl: imageUrl,
-        id: city
-      };
-    });
-    addMapLayers();
-  }
-
-  function addMapLayers() {
-    const geojsonData = {
-      type: 'FeatureCollection',
-      features: sheetData.map(data => ({
-        type: 'Feature',
-        properties: {
-          city: data.city,
-          country: data.country,
-          imageUrl: data.imageUrl,
-          id: data.id
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: data.coordinates
-        }
-      }))
-    };
-
+  map.on('load', function () {
     map.addSource('capitals', {
       type: 'geojson',
-      data: geojsonData,
+      data: 'data.geojson', // Nahraďte cestu k vašemu GeoJSON souboru
       cluster: true,
       clusterMaxZoom: 14,
       clusterRadius: 50
@@ -136,7 +91,6 @@
       }
     });
 
-    // Listen for click events on the clusters
     map.on('click', 'clusters', function (e) {
       var features = map.queryRenderedFeatures(e.point, {
         layers: ['clusters']
@@ -155,7 +109,6 @@
       );
     });
 
-    // Show a popup when clicking on a point
     map.on('click', 'unclustered-point', function (e) {
       var coordinates = e.features[0].geometry.coordinates.slice();
       var { city, country, imageUrl } = e.features[0].properties;
@@ -166,52 +119,11 @@
         .addTo(map);
     });
 
-    // Change the cursor to a pointer when over a cluster
     map.on('mouseenter', 'clusters', function () {
       map.getCanvas().style.cursor = 'pointer';
     });
     map.on('mouseleave', 'clusters', function () {
       map.getCanvas().style.cursor = '';
-    });
-  }
-
-  map.on('load', loadMarkers);
-
-  map.on('moveend', function() {
-    map.getSource('capitals').setData({
-      type: 'FeatureCollection',
-      features: sheetData.map(data => ({
-        type: 'Feature',
-        properties: {
-          city: data.city,
-          country: data.country,
-          imageUrl: data.imageUrl,
-          id: data.id
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: data.coordinates
-        }
-      }))
-    });
-  });
-
-  map.on('zoomend', function() {
-    map.getSource('capitals').setData({
-      type: 'FeatureCollection',
-      features: sheetData.map(data => ({
-        type: 'Feature',
-        properties: {
-          city: data.city,
-          country: data.country,
-          imageUrl: data.imageUrl,
-          id: data.id
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: data.coordinates
-        }
-      }))
     });
   });
 </script>
