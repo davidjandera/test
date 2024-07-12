@@ -146,29 +146,29 @@
       };
     });
 
-    function updateMarkers() {
-      const features = map.querySourceFeatures('capitals');
+function updateMarkers() {
+  const features = map.querySourceFeatures('capitals');
 
-      // Nastavit viditelnost markerů
-      features.forEach(feature => {
-        const id = feature.properties.id;
-        if (markers[id]) {
-          if (feature.properties.point_count) {
-            // Marker je součástí clusteru
-            if (markers[id].visible) {
-              markers[id].marker.remove();
-              markers[id].visible = false;
-            }
-          } else {
-            // Marker není součástí clusteru
-            if (!markers[id].visible) {
-              markers[id].marker.addTo(map);
-              markers[id].visible = true;
-            }
-          }
+  // Nastavit viditelnost markerů
+  features.forEach(feature => {
+    const id = feature.properties.id;
+    if (markers[id]) {
+      if (feature.properties.cluster) {
+        // Marker je součástí clusteru
+        if (markers[id].visible) {
+          markers[id].marker.remove();
+          markers[id].visible = false;
         }
-      });
+      } else {
+        // Marker není součástí clusteru
+        if (!markers[id].visible) {
+          markers[id].marker.addTo(map);
+          markers[id].visible = true;
+        }
+      }
     }
+  });
+}
 
     // Aktualizace markerů při změně mapových dat
     map.on('data', (e) => {
