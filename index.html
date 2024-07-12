@@ -33,20 +33,19 @@
 <body>
 <div id="map"></div>
 <script>
-  mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q'; // Nahraďte vaším Mapbox Access Tokenem
+  mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q';
 
   var map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11',
-    center: [12.7376057, 42.8747214], // střed Trevi
+    center: [12.7376057, 42.8747214],
     zoom: 5
   });
 
-  // Function to fetch Google Sheets data
   async function fetchGoogleSheetsData() {
-    const apiKey = 'AIzaSyCpgbO0B6V0eEiVfyt6xewv0cHjyYsj1-o'; // Nahraďte vaším Google Sheets API klíčem
-    const spreadsheetId = '1YtHqKg22xPXglCKOYOzCYTK4Om1_WhjaogZTCHnfzf8'; // Nahraďte ID vaší tabulky Google Sheets
-    const range = 'mapa!A:E'; // Přizpůsobte název listu a rozsah podle potřeby
+    const apiKey = 'AIzaSyCpgbO0B6V0eEiVfyt6xewv0cHjyYsj1-o';
+    const spreadsheetId = '1YtHqKg22xPXglCKOYOzCYTK4Om1_WhjaogZTCHnfzf8';
+    const range = 'mapa!A:E';
 
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`);
     const data = await response.json();
@@ -56,7 +55,7 @@
   map.on('load', async function () {
     const rows = await fetchGoogleSheetsData();
 
-    const features = rows.slice(1).map(function(row) { // Skip header row
+    const features = rows.slice(1).map(function(row) {
       const [city, country, lat, lng, imageUrl] = row;
       return {
         type: 'Feature',
@@ -80,8 +79,8 @@
         features: features
       },
       cluster: true,
-      clusterMaxZoom: 14, // Max zoom to cluster points on
-      clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
+      clusterMaxZoom: 14,
+      clusterRadius: 50
     });
 
     map.addLayer({
@@ -123,7 +122,6 @@
       }
     });
 
-    // Add the unclustered points layer with custom markers
     const markers = {};
     features.forEach(function(feature) {
       var el = document.createElement('div');
@@ -143,35 +141,28 @@
       markers[feature.properties.id] = marker;
     });
 
-    // Function to update marker visibility based on cluster state
     function updateMarkers() {
-      const zoom = map.getZoom();
       const features = map.querySourceFeatures('capitals');
-      
-      const clusteredFeatures = features.filter(feature => feature.properties.cluster);
-      const pointFeatures = features.filter(feature => !feature.properties.cluster);
-      
-      // Hide all markers initially
+
+      const clusteredFeatures = features.filter(feature => feature.properties.cluster_id);
+      const pointFeatures = features.filter(feature => !feature.properties.cluster_id);
+
       Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
-      
-      // Show individual points
+
       pointFeatures.forEach(feature => {
         const id = feature.properties.id;
         if (markers[id]) {
           markers[id].getElement().style.display = 'block';
         }
       });
-      
-      // Process clusters (no need to show markers for clusters, as they are rendered by the cluster layer)
     }
 
-    // Update markers on map events
     map.on('data', (e) => {
       if (e.sourceId === 'capitals' && e.isSourceLoaded) {
         updateMarkers();
       }
     });
-    
+
     map.on('moveend', updateMarkers);
     map.on('zoomend', updateMarkers);
 
@@ -191,16 +182,6 @@
           });
         }
       );
-    });
-
-    map.on('click', 'unclustered-point', function (e) {
-      var coordinates = e.features[0].geometry.coordinates.slice();
-      var { city, country, imageUrl } = e.features[0].properties;
-
-      new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(`<strong>${city}, ${country}</strong><br><img src="${imageUrl}" style="width:100px;height:auto;">`)
-        .addTo(map);
     });
 
     map.on('mouseenter', 'clusters', function () {
