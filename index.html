@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>European Capitals Map</title>
+  <title>Mapa evropských hlavních měst</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet" />
@@ -111,17 +111,6 @@
       }
     });
 
-    map.addLayer({
-      id: 'unclustered-point',
-      type: 'symbol',
-      source: 'capitals',
-      filter: ['!', ['has', 'point_count']],
-      layout: {
-        'icon-image': 'marker-15',
-        'icon-size': 1
-      }
-    });
-
     const markers = {};
     features.forEach(function(feature) {
       var el = document.createElement('div');
@@ -143,6 +132,7 @@
 
     function updateMarkers() {
       const features = map.querySourceFeatures('capitals', { filter: ['!', ['has', 'point_count']] });
+      const clusters = map.querySourceFeatures('capitals', { filter: ['has', 'point_count'] });
 
       Object.values(markers).forEach(marker => marker.getElement().style.display = 'none');
 
@@ -151,6 +141,19 @@
         if (markers[id]) {
           markers[id].getElement().style.display = 'block';
         }
+      });
+
+      clusters.forEach(cluster => {
+        const clusterId = cluster.properties.cluster_id;
+        map.getSource('capitals').getClusterLeaves(clusterId, Infinity, 0, (err, leaves) => {
+          if (err) return;
+          leaves.forEach(leaf => {
+            const id = leaf.properties.id;
+            if (markers[id]) {
+              markers[id].getElement().style.display = 'none';
+            }
+          });
+        });
       });
     }
 
