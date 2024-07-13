@@ -284,10 +284,16 @@
 
   document.getElementById('findButton').addEventListener('click', findCity);
 
+  function refreshMarkers() {
+    setTimeout(updateMarkers, 500); // Nastavte malé zpoždění pro zajištění správného načtení
+  }
+
   map.on('zoomend', function() {
     document.getElementById('zoomLevel').innerText = `Zoom level: ${map.getZoom().toFixed(2)}`;
-    updateMarkers(); // Aktualizace markerů při změně zoom levelu
+    refreshMarkers(); // Aktualizace markerů při změně zoom levelu
   });
+
+  map.on('moveend', refreshMarkers); // Aktualizace markerů při pohybu mapy
 
   map.on('load', async function () {
     const rows = await fetchGoogleSheetsData();
@@ -344,8 +350,8 @@
 
     updateMarkers();
 
-    map.on('moveend', updateMarkers);
-    map.on('zoomend', updateMarkers);
+    map.on('moveend', refreshMarkers);
+    map.on('zoomend', refreshMarkers);
 
     map.on('click', 'clusters', function (e) {
       var features = map.queryRenderedFeatures(e.point, {
