@@ -37,6 +37,16 @@
       font-size: 14px;
       cursor: pointer;
     }
+    #zoomLevel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #fff;
+      padding: 10px;
+      border: none;
+      z-index: 1;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -46,6 +56,7 @@
   <button id="findButton">Najít</button>
   <button id="magicButton">Magic</button>
 </div>
+<div id="zoomLevel">Zoom level: 5</div>
 <script>
   mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q'; // Nahraďte vaším Mapbox Access Tokenem
 
@@ -129,11 +140,14 @@
             .setLngLat(coords)
             .addTo(map);
 
-          el.addEventListener('click', function() {
-            new mapboxgl.Popup()
+          el.addEventListener('mouseenter', function() {
+            var popup = new mapboxgl.Popup({ closeButton: false, offset: 25 })
               .setLngLat(coords)
-              .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
+              .setHTML(`<strong>${props.city}</strong>`)
               .addTo(map);
+            el.addEventListener('mouseleave', function() {
+              popup.remove();
+            });
           });
 
           markers[props.id] = marker;
