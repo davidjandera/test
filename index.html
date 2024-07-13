@@ -27,11 +27,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       font-size: 12px;
-      background-color: rgba(255, 255, 255, 0.5); /* White background with 50% opacity */
-      padding: 2px;
-      border-radius: 3px;
-      left: 50%;
-      transform: translateX(-50%);
     }
     #controls {
       position: absolute;
@@ -129,34 +124,6 @@
     };
   }
 
-  function addMarker(feature) {
-    var coords = feature.geometry.coordinates;
-    var props = feature.properties;
-
-    var el = document.createElement('div');
-    el.className = 'marker';
-    el.style.backgroundImage = `url(${props.imageUrl})`;
-
-    var label = document.createElement('div');
-    label.className = 'marker-label';
-    label.textContent = props.city;
-
-    el.appendChild(label);
-
-    var marker = new mapboxgl.Marker(el)
-      .setLngLat(coords)
-      .addTo(map);
-
-    el.addEventListener('click', function() {
-      new mapboxgl.Popup()
-        .setLngLat(coords)
-        .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
-        .addTo(map);
-    });
-
-    markers[props.id] = marker;
-  }
-
   function updateMarkers() {
     var newMarkers = {};
     var features = map.querySourceFeatures('capitals');
@@ -176,7 +143,28 @@
 
       if (!props.cluster) {
         if (!markers[props.id]) {
-          addMarker(feature);
+          var el = document.createElement('div');
+          el.className = 'marker';
+          el.style.backgroundImage = `url(${props.imageUrl})`;
+
+          var label = document.createElement('div');
+          label.className = 'marker-label';
+          label.textContent = props.city;
+
+          el.appendChild(label);
+
+          var marker = new mapboxgl.Marker(el)
+            .setLngLat(coords)
+            .addTo(map);
+
+          el.addEventListener('click', function() {
+            new mapboxgl.Popup()
+              .setLngLat(coords)
+              .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
+              .addTo(map);
+          });
+
+          markers[props.id] = marker;
         }
         newMarkers[props.id] = markers[props.id];
 
@@ -188,8 +176,6 @@
         }
       }
     });
-
-    markers = newMarkers; // Aktualizace kolekce markerů
   }
 
   function toggleClustering() {
@@ -377,4 +363,3 @@
 </script>
 </body>
 </html>
-
