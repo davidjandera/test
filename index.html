@@ -16,22 +16,6 @@
       border: 2px solid white;
       background-size: cover;
       background-position: center;
-      position: relative;
-    }
-    .marker-label {
-      position: absolute;
-      top: 55px;
-      width: 100px;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 12px;
-      background-color: rgba(255, 255, 255, 0.5);
-      padding: 2px;
-      border-radius: 3px;
-      left: 50%;
-      transform: translateX(-50%);
     }
     #controls {
       position: absolute;
@@ -53,16 +37,6 @@
       font-size: 14px;
       cursor: pointer;
     }
-    #zoomLevel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: #fff;
-      padding: 10px;
-      border: none;
-      z-index: 1;
-      font-size: 14px;
-    }
   </style>
 </head>
 <body>
@@ -72,7 +46,6 @@
   <button id="findButton">Najít</button>
   <button id="magicButton">Magic</button>
 </div>
-<div id="zoomLevel">Zoom level: 5</div>
 <script>
   mapboxgl.accessToken = 'pk.eyJ1IjoiZGphbmRlcmEiLCJhIjoiY2ptZzJ4NXhqMnJ4ZjNrbnRiMm1haHhrcSJ9.8U9iRQu8sGnE7AQ1C7VI4Q'; // Nahraďte vaším Mapbox Access Tokenem
 
@@ -129,33 +102,6 @@
     };
   }
 
-  function addMarker(feature) {
-    var coords = feature.geometry.coordinates;
-    var props = feature.properties;
-
-    var el = document.createElement('div');
-    el.className = 'marker';
-    el.style.backgroundImage = `url(${props.imageUrl})`;
-
-    var label = document.createElement('div');
-    label.className = 'marker-label';
-    label.textContent = props.city;
-    el.appendChild(label);
-
-    var marker = new mapboxgl.Marker(el)
-      .setLngLat(coords)
-      .addTo(map);
-
-    el.addEventListener('click', function() {
-      new mapboxgl.Popup()
-        .setLngLat(coords)
-        .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
-        .addTo(map);
-    });
-
-    markers[props.id] = marker;
-  }
-
   function updateMarkers() {
     var newMarkers = {};
     var features = map.querySourceFeatures('capitals');
@@ -175,13 +121,26 @@
 
       if (!props.cluster) {
         if (!markers[props.id]) {
-          addMarker(feature);
+          var el = document.createElement('div');
+          el.className = 'marker';
+          el.style.backgroundImage = `url(${props.imageUrl})`;
+
+          var marker = new mapboxgl.Marker(el)
+            .setLngLat(coords)
+            .addTo(map);
+
+          el.addEventListener('click', function() {
+            new mapboxgl.Popup()
+              .setLngLat(coords)
+              .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
+              .addTo(map);
+          });
+
+          markers[props.id] = marker;
         }
         newMarkers[props.id] = markers[props.id];
       }
     });
-
-    markers = newMarkers; // Aktualizace kolekce markerů
   }
 
   function toggleClustering() {
