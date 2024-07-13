@@ -18,21 +18,6 @@
       background-position: center;
       position: relative;
     }
-    .marker-label {
-      position: absolute;
-      top: 55px; /* Adjust this value to position the label under the marker */
-      width: 100px;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 12px;
-      background-color: rgba(255, 255, 255, 0.5); /* White background with 50% opacity */
-      padding: 2px;
-      border-radius: 3px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
     #controls {
       position: absolute;
       top: 10px;
@@ -177,30 +162,46 @@
     });
 
     markers = newMarkers; // Aktualizace kolekce markerů
-
-    // Přidání popisků po vykreslení markerů
-    addLabels();
   }
 
-  function addLabels() {
-    Object.keys(markers).forEach(function(id) {
-      var marker = markers[id];
-      var props = marker.getElement().__feature.properties;
-      var coords = marker.getLngLat();
+  function addTextLayer(geojsonData) {
+    if (map.getLayer('city-labels')) {
+      map.removeLayer('city-labels');
+    }
+    if (map.getSource('city-labels')) {
+      map.removeSource('city-labels');
+    }
 
-      var label = document.createElement('div');
-      label.className = 'marker-label';
-      label.textContent = props.city;
+    map.addSource('city-labels', {
+      type: 'geojson',
+      data: geojsonData
+    });
 
-      var popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-        .setLngLat(coords)
-        .setDOMContent(label)
-        .addTo(map);
-
-      if (map.getZoom() < 7) {
-        popup.remove();
+    map.addLayer({
+      id: 'city-labels',
+      type: 'symbol',
+      source: 'city-labels',
+      layout: {
+        'text-field': '{city}',
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+        'text-size': 12,
+        'text-anchor': 'top',
+        'text-offset': [0, 1.5],
+        'visibility': 'none'
+      },
+      paint: {
+        'text-color': 'rgba(0, 0, 0, 0.8)',
+        'text-halo-color': 'rgba(255, 255, 255, 0.8)',
+        'text-halo-width': 2
       }
     });
+
+    updateTextLayerVisibility();
+  }
+
+  function updateTextLayerVisibility() {
+    var visibility = map.getZoom() >= 7 ? 'visible' : 'none';
+    map.setLayoutProperty('city-labels', 'visibility', visibility);
   }
 
   function toggleClustering() {
@@ -302,6 +303,7 @@
   map.on('zoomend', function() {
     document.getElementById('zoomLevel').innerText = `Zoom level: ${map.getZoom().toFixed(2)}`;
     refreshMarkers(); // Aktualizace markerů při změně zoom levelu
+    updateTextLayerVisibility(); // Aktualizace viditelnosti textové vrstvy
   });
 
   map.on('moveend', refreshMarkers); // Aktualizace markerů při pohybu mapy
@@ -390,6 +392,9 @@
     map.on('mouseleave', 'clusters', function () {
       map.getCanvas().style.cursor = '';
     });
+
+    // Přidání textové vrstvy po načtení mapy
+    addTextLayer(geojsonData);
   });
 </script>
 </body>
