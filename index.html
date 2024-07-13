@@ -129,6 +129,34 @@
     };
   }
 
+  function addMarker(feature) {
+    var coords = feature.geometry.coordinates;
+    var props = feature.properties;
+
+    var el = document.createElement('div');
+    el.className = 'marker';
+    el.style.backgroundImage = `url(${props.imageUrl})`;
+
+    var label = document.createElement('div');
+    label.className = 'marker-label';
+    label.textContent = props.city;
+
+    el.appendChild(label);
+
+    var marker = new mapboxgl.Marker(el)
+      .setLngLat(coords)
+      .addTo(map);
+
+    el.addEventListener('click', function() {
+      new mapboxgl.Popup()
+        .setLngLat(coords)
+        .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
+        .addTo(map);
+    });
+
+    markers[props.id] = marker;
+  }
+
   function updateMarkers() {
     var newMarkers = {};
     var features = map.querySourceFeatures('capitals');
@@ -148,28 +176,7 @@
 
       if (!props.cluster) {
         if (!markers[props.id]) {
-          var el = document.createElement('div');
-          el.className = 'marker';
-          el.style.backgroundImage = `url(${props.imageUrl})`;
-
-          var label = document.createElement('div');
-          label.className = 'marker-label';
-          label.textContent = props.city;
-
-          el.appendChild(label);
-
-          var marker = new mapboxgl.Marker(el)
-            .setLngLat(coords)
-            .addTo(map);
-
-          el.addEventListener('click', function() {
-            new mapboxgl.Popup()
-              .setLngLat(coords)
-              .setHTML(`<strong>${props.city}, ${props.country}</strong><br><img src="${props.imageUrl}" style="width:100px;height:auto;">`)
-              .addTo(map);
-          });
-
-          markers[props.id] = marker;
+          addMarker(feature);
         }
         newMarkers[props.id] = markers[props.id];
 
@@ -181,6 +188,8 @@
         }
       }
     });
+
+    markers = newMarkers; // Aktualizace kolekce markerů
   }
 
   function toggleClustering() {
@@ -368,3 +377,4 @@
 </script>
 </body>
 </html>
+
