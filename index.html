@@ -137,12 +137,6 @@
     el.className = 'marker';
     el.style.backgroundImage = `url(${props.imageUrl})`;
 
-    var label = document.createElement('div');
-    label.className = 'marker-label';
-    label.textContent = props.city;
-
-    el.appendChild(label);
-
     var marker = new mapboxgl.Marker(el)
       .setLngLat(coords)
       .addTo(map);
@@ -179,17 +173,34 @@
           addMarker(feature);
         }
         newMarkers[props.id] = markers[props.id];
-
-        var label = markers[props.id].getElement().querySelector('.marker-label');
-        if (map.getZoom() >= 7) {
-          label.style.display = 'block';
-        } else {
-          label.style.display = 'none';
-        }
       }
     });
 
     markers = newMarkers; // Aktualizace kolekce markerů
+
+    // Přidání popisků po vykreslení markerů
+    addLabels();
+  }
+
+  function addLabels() {
+    Object.keys(markers).forEach(function(id) {
+      var marker = markers[id];
+      var props = marker.getElement().__feature.properties;
+      var coords = marker.getLngLat();
+
+      var label = document.createElement('div');
+      label.className = 'marker-label';
+      label.textContent = props.city;
+
+      var popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+        .setLngLat(coords)
+        .setDOMContent(label)
+        .addTo(map);
+
+      if (map.getZoom() < 7) {
+        popup.remove();
+      }
+    });
   }
 
   function toggleClustering() {
