@@ -16,17 +16,6 @@
       border: 2px solid white;
       background-size: cover;
       background-position: center;
-      position: relative;
-    }
-    .marker-label {
-      position: absolute;
-      top: 55px; /* Adjust this value to position the label under the marker */
-      width: 100px;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 12px;
     }
     #controls {
       position: absolute;
@@ -147,12 +136,6 @@
           el.className = 'marker';
           el.style.backgroundImage = `url(${props.imageUrl})`;
 
-          var label = document.createElement('div');
-          label.className = 'marker-label';
-          label.textContent = props.city;
-
-          el.appendChild(label);
-
           var marker = new mapboxgl.Marker(el)
             .setLngLat(coords)
             .addTo(map);
@@ -168,11 +151,13 @@
         }
         newMarkers[props.id] = markers[props.id];
 
-        var label = markers[props.id].getElement().querySelector('.marker-label');
         if (map.getZoom() >= 7) {
-          label.style.display = 'block';
-        } else {
-          label.style.display = 'none';
+          var label = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+            .setLngLat(coords)
+            .setHTML(`<p style="text-align:center;">${props.city}</p>`)
+            .addTo(map);
+          
+          markers[props.id].setPopup(label);
         }
       }
     });
